@@ -1,20 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 
 import { useHub } from "@/components/HubStore";
 import { SectionCard, StatCard } from "@/components/ui";
 import { useDerivedLeads, type DerivedLead } from "@/components/useDerived";
-import { ink, money, moneyFull } from "@/lib/engine";
+import { ink, money } from "@/lib/engine";
 import { STAGES, STAGE_ORDER } from "@/lib/stages";
 
 /**
- * What the pipeline is worth.
+ * What the pipeline is worth. Totals only.
  *
- * Active MRR is booked revenue from converted clients; Pipeline MRR is
- * everything still live, reported at full value. No probability weighting -
- * the team reads these as "what is on the table", and applies its own judgement
- * about what will land.
+ * The rate card - which package costs what, which add-ons a lead carries - is
+ * configuration, and it lives in Settings where it is edited. Restating it
+ * here would put prices in two places, and two places eventually disagree.
+ *
+ * Active MRR is booked revenue from converted clients. Pipeline MRR is
+ * everything still live, at full value, with no probability weighting: what is
+ * on the table, not a guess at what will land.
  */
 export function RevenueView() {
   const { ws, theme } = useHub();
@@ -28,77 +32,27 @@ export function RevenueView() {
     );
 
     const activeMrr = sum(converted);
-    const pipelineMrr = sum(inPipe);
-
     const closed = converted.length + dead.length;
 
     return {
       activeMrr,
-      pipelineMrr,
+      pipelineMrr: sum(inPipe),
       avgDeal: converted.length ? activeMrr / converted.length : 0,
       winRate: closed ? converted.length / closed : 0,
       convertedCount: converted.length,
     };
   }, [leads]);
 
-  const byPackage = useMemo(() => {
-    const attachable = leads.length || 1;
-
-    return ws.packages
-      .map((pkg) => {
-        const on = leads.filter((l) => l.packageId === pkg.id);
-        const clients = on.filter((l) => l.stage === "converted");
-        return {
-          id: pkg.id,
-          name: pkg.name,
-          priceCents: pkg.priceCents,
-          clients: clients.length,
-          attach: on.length / attachable,
-          inPipe: on.filter(
-            (l) => l.stage !== "converted" && l.stage !== "dead"
-          ).length,
-          activeMrr: sum(clients),
-        };
-      })
-      .sort((a, b) => b.activeMrr - a.activeMrr);
-  }, [leads, ws.packages]);
-
-  const byAddon = useMemo(
-    () =>
-      ws.addons
-        .map((addon) => {
-          const on = leads.filter((l) => l.addonIds.includes(addon.id));
-          return {
-            id: addon.id,
-            name: addon.name,
-            priceCents: addon.priceCents,
-            attached: on.length,
-            activeMrr:
-              on.filter((l) => l.stage === "converted").length *
-              addon.priceCents,
-          };
-        })
-        .filter((a) => a.attached > 0)
-        .sort((a, b) => b.attached - a.attached),
-    [leads, ws.addons]
-  );
-
   const byStage = useMemo(
     () =>
       STAGE_ORDER.filter((s) => s !== "converted" && s !== "dead").map(
         (stage) => {
           const inStage = leads.filter((l) => l.stage === stage);
-          return {
-            stage,
-            count: inStage.length,
-            value: sum(inStage),
-          };
+          return { stage, count: inStage.length, value: sum(inStage) };
         }
       ),
     [leads]
   );
-
-  const maxPackageMrr = Math.max(1, ...byPackage.map((p) => p.activeMrr));
 
   return (
     <>
@@ -113,7 +67,9 @@ export function RevenueView() {
         <StatCard
           label="Active MRR"
           value={money(totals.activeMrr)}
-          note={`${totals.convertedCount} managed clients`}
+          note={`${totals.convertedCount} managed ${
+            totals.convertedCount === 1 ? "client" : "clients"
+          }`}
           tone="#3FBF7F"
         />
         <StatCard
@@ -122,7 +78,11 @@ export function RevenueView() {
           note="everything live, at full value"
           tone="#E9A83B"
         />
-        <StatCard label="Avg deal" value={money(totals.avgDeal)} note="per client" />
+        <StatCard
+          label="Avg deal"
+          value={money(totals.avgDeal)}
+          note="per client"
+        />
         <StatCard
           label="Win rate"
           value={`${Math.round(totals.winRate * 100)}%`}
@@ -221,7 +181,9 @@ export function RevenueView() {
                           style={{
                             ...cell,
                             ...numeric,
-                            color: row.wonCount ? ink("#3FBF7F", theme) : undefined,
+                            color: row.wonCount
+                              ? ink("#3FBF7F", theme)
+                              : undefined,
                           }}
                         >
                           {row.wonCount}
@@ -230,7 +192,9 @@ export function RevenueView() {
                           style={{
                             ...cell,
                             ...numeric,
-                            color: row.lostCount ? ink("#F2683C", theme) : undefined,
+                            color: row.lostCount
+                              ? ink("#F2683C", theme)
+                              : undefined,
                           }}
                         >
                           {row.lostCount}
@@ -241,141 +205,6 @@ export function RevenueView() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard title="Revenue by package" bodyStyle={{ padding: 0 }}>
-          <div className="upf-scroll-x">
-            <table
-              style={{
-                width: "100%",
-                minWidth: 720,
-                borderCollapse: "collapse",
-              }}
-            >
-              <thead>
-                <tr>
-                  {["Package", "Price", "Clients", "Attach", "In pipe", "Active MRR"].map(
-                    (heading, i) => (
-                      <th
-                        key={heading}
-                        className="upf-label"
-                        style={{
-                          padding: "11px 16px",
-                          textAlign: i === 0 ? "left" : "right",
-                          borderBottom: "1px solid var(--t16)",
-                          fontWeight: 400,
-                        }}
-                      >
-                        {heading}
-                      </th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {byPackage.map((row) => (
-                  <tr key={row.id}>
-                    <td style={cell}>{row.name}</td>
-                    <td style={{ ...cell, ...numeric }}>
-                      {moneyFull(row.priceCents)}
-                    </td>
-                    <td style={{ ...cell, ...numeric }}>{row.clients}</td>
-                    <td style={{ ...cell, ...numeric }}>
-                      {Math.round(row.attach * 100)}%
-                    </td>
-                    <td style={{ ...cell, ...numeric }}>{row.inPipe}</td>
-                    <td style={{ ...cell, ...numeric, minWidth: 160 }}>
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <span
-                          aria-hidden
-                          className="upf-bar"
-                          style={{
-                            height: 6,
-                            borderRadius: 3,
-                            width: `${(row.activeMrr / maxPackageMrr) * 90}px`,
-                            minWidth: row.activeMrr > 0 ? 4 : 0,
-                            background: ink("#3FBF7F", theme),
-                          }}
-                        />
-                        {money(row.activeMrr)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Add-on attach" bodyStyle={{ padding: 0 }}>
-          {byAddon.length === 0 ? (
-            <p
-              style={{
-                margin: 0,
-                padding: 18,
-                fontSize: 13,
-                color: "var(--t35)",
-              }}
-            >
-              No add-ons attached to any lead yet.
-            </p>
-          ) : (
-            <div className="upf-scroll-x">
-              <table
-                style={{
-                  width: "100%",
-                  minWidth: 560,
-                  borderCollapse: "collapse",
-                }}
-              >
-                <thead>
-                  <tr>
-                    {["Add-on", "Price", "Attached", "Active MRR"].map(
-                      (heading, i) => (
-                        <th
-                          key={heading}
-                          className="upf-label"
-                          style={{
-                            padding: "11px 16px",
-                            textAlign: i === 0 ? "left" : "right",
-                            borderBottom: "1px solid var(--t16)",
-                            fontWeight: 400,
-                          }}
-                        >
-                          {heading}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {byAddon.map((row) => (
-                    <tr key={row.id}>
-                      <td style={cell}>{row.name}</td>
-                      <td style={{ ...cell, ...numeric }}>
-                        {row.priceCents === 0 ? (
-                          <span style={{ color: "var(--t34)" }}>not set</span>
-                        ) : (
-                          moneyFull(row.priceCents)
-                        )}
-                      </td>
-                      <td style={{ ...cell, ...numeric }}>{row.attached}</td>
-                      <td style={{ ...cell, ...numeric }}>
-                        {money(row.activeMrr)}
-                      </td>
-                    </tr>
-                  ))}
                 </tbody>
               </table>
             </div>
@@ -399,7 +228,9 @@ export function RevenueView() {
                   borderLeft: `3px solid ${STAGES[row.stage].color}`,
                 }}
               >
-                <span style={{ fontSize: 13.5, fontWeight: 600, flex: "0 0 140px" }}>
+                <span
+                  style={{ fontSize: 13.5, fontWeight: 600, flex: "0 0 140px" }}
+                >
                   {STAGES[row.stage].label}
                 </span>
                 <span
@@ -424,14 +255,26 @@ export function RevenueView() {
             ))}
           </div>
 
-          <p style={{ margin: "12px 0 0", fontSize: 11.5, color: "var(--t34)" }}>
+          <p
+            style={{
+              margin: "12px 0 0",
+              fontSize: 11.5,
+              color: "var(--t34)",
+              lineHeight: 1.6,
+            }}
+          >
             Converted revenue is reported as Active MRR and excluded here — it
-            is already won, not still on the table.
+            is already won, not still on the table. Package and add-on prices
+            are set in <Link href="/settings">Settings</Link>.
           </p>
         </SectionCard>
       </div>
     </>
   );
+}
+
+function sum(leads: DerivedLead[]): number {
+  return leads.reduce((acc, lead) => acc + lead.mrrCents, 0);
 }
 
 /** "September 2026" from an ISO date, read as UTC so the month cannot slip. */
@@ -442,10 +285,6 @@ function monthLabel(iso: string): string {
     year: "numeric",
     timeZone: "UTC",
   });
-}
-
-function sum(leads: DerivedLead[]): number {
-  return leads.reduce((acc, lead) => acc + lead.mrrCents, 0);
 }
 
 const cell = {
