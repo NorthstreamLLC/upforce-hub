@@ -45,10 +45,14 @@ const NAV = [
   { href: "/today", label: "Today", icon: "◎" },
   { href: "/pipeline", label: "Pipeline", icon: "▦" },
   { href: "/leads", label: "All leads", icon: "☰" },
-  { href: "/calendar", label: "Calendar", icon: "▤" },
   { href: "/revenue", label: "Revenue", icon: "◧" },
   { href: "/settings", label: "Settings", icon: "⚙" },
 ];
+
+/* Calendar is built but not wired - CadenceDock and the calendar providers are
+   UI only. Grouped separately so the sidebar says so before anyone clicks,
+   rather than letting them find out by booking a meeting that syncs nowhere. */
+const NAV_SOON = [{ href: "/calendar", label: "Calendar", icon: "▤" }];
 
 const TITLES: Record<string, string> = {
   "/today": "Today",
@@ -58,6 +62,42 @@ const TITLES: Record<string, string> = {
   "/revenue": "Revenue",
   "/settings": "Settings",
 };
+
+function NavLink({
+  item,
+  active,
+  muted,
+}: {
+  item: { href: string; label: string; icon: string };
+  active: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className="upf-focus"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 11px",
+        borderRadius: 9,
+        fontSize: 13.5,
+        fontWeight: active ? 600 : 500,
+        color: active ? "var(--ta)" : muted ? "var(--t34)" : "var(--t37)",
+        background: active ? "var(--t14)" : "transparent",
+        border: `1px solid ${active ? "var(--t25)" : "transparent"}`,
+        transition: "background .16s ease, color .16s ease",
+      }}
+    >
+      <span aria-hidden style={{ fontSize: 14, width: 16 }}>
+        {item.icon}
+      </span>
+      {item.label}
+    </Link>
+  );
+}
 
 export function Shell({
   profile,
@@ -117,35 +157,29 @@ export function Shell({
             />
           </Link>
 
-          {NAV.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className="upf-focus"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "9px 11px",
-                  borderRadius: 9,
-                  fontSize: 13.5,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? "var(--ta)" : "var(--t37)",
-                  background: active ? "var(--t14)" : "transparent",
-                  border: `1px solid ${active ? "var(--t25)" : "transparent"}`,
-                  transition: "background .16s ease, color .16s ease",
-                }}
-              >
-                <span aria-hidden style={{ fontSize: 14, width: 16 }}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            );
-          })}
+          {NAV.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+            />
+          ))}
+
+          <p
+            className="upf-label"
+            style={{ margin: "18px 0 6px", padding: "0 11px" }}
+          >
+            Coming soon
+          </p>
+
+          {NAV_SOON.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+              muted
+            />
+          ))}
 
           <div style={{ marginTop: "auto", padding: "12px 4px 0" }}>
             <div
@@ -177,8 +211,8 @@ export function Shell({
           </div>
         </nav>
 
-        {/* The drawer is absolutely positioned against this column, so it
-            covers the content without ever sliding over the nav. */}
+        {/* The drawer pins itself to the viewport and is narrow enough to
+            clear this column's left edge, so it never covers the nav. */}
         <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
           <header
             style={{

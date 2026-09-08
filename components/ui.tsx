@@ -281,6 +281,74 @@ export function SectionCard({
   );
 }
 
+/**
+ * A card that opens and closes.
+ *
+ * Built on <details>/<summary> rather than a useState toggle: the browser
+ * handles the keyboard, the ARIA and find-in-page (Chrome expands a closed
+ * section to reveal a match) for free, and it works before hydration.
+ *
+ * Settings is a page of long lists that are read rarely and edited rarer
+ * still. Collapsed by default, the whole taxonomy fits on one screen and you
+ * open only the list you came for.
+ */
+export function CollapsibleCard({
+  title,
+  count,
+  children,
+  defaultOpen = false,
+}: {
+  title: ReactNode;
+  /** Shown next to the title, so a closed section still says how big it is. */
+  count?: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details className="upf-card upf-collapse" open={defaultOpen}>
+      <summary
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "13px 16px",
+          cursor: "pointer",
+          listStyle: "none",
+        }}
+      >
+        <span
+          aria-hidden
+          className="upf-collapse-marker"
+          style={{
+            fontSize: 10,
+            color: "var(--t34)",
+            transition: "transform .16s ease",
+          }}
+        >
+          ▶
+        </span>
+        <h2
+          className="upf-display"
+          style={{ fontSize: 14, fontWeight: 600, margin: 0 }}
+        >
+          {title}
+        </h2>
+        {count !== undefined ? (
+          <span
+            className="upf-mono"
+            style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--t35)" }}
+          >
+            {count}
+          </span>
+        ) : null}
+      </summary>
+      <div style={{ padding: 12, borderTop: "1px solid var(--t16)" }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
     <p

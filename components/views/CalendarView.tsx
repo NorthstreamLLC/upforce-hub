@@ -92,6 +92,38 @@ export function CalendarView() {
 
   return (
     <>
+      {/* Said plainly and up front. Everything below this line works as a
+          local record - meetings save, touches appear on the right day - but
+          nothing leaves Hub, and a page that looks like a calendar invites the
+          assumption that it is one. */}
+      <div
+        role="note"
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 10,
+          flexWrap: "wrap",
+          padding: "12px 16px",
+          marginBottom: 16,
+          borderRadius: 12,
+          background: "var(--t14)",
+          border: "1px solid var(--t25)",
+        }}
+      >
+        <span
+          className="upf-label"
+          style={{ color: "var(--ta)", flex: "0 0 auto" }}
+        >
+          Coming soon
+        </span>
+        <span style={{ fontSize: 13, color: "var(--t38)", lineHeight: 1.55 }}>
+          Nothing here syncs yet. Connecting an account, copying the share link
+          and booking time all save inside Hub only — CadenceDock and the
+          calendar providers are not wired up. Scheduled retarget touches shown
+          on the grid are read from the pipeline and are accurate.
+        </span>
+      </div>
+
       <div
         style={{
           display: "flex",

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { useHub } from "@/components/HubStore";
-import { SectionCard } from "@/components/ui";
+import { CollapsibleCard, SectionCard } from "@/components/ui";
 import { ink } from "@/lib/engine";
 import { STAGES, STAGE_ORDER, SWATCHES, type StageId } from "@/lib/stages";
 
@@ -81,7 +81,10 @@ function Taxonomy() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <SectionCard title="Tags">
+      <CollapsibleCard
+        title="Tags"
+        count={`${ws.tags.length} ${ws.tags.length === 1 ? "tag" : "tags"}`}
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {ws.tags.map((tag) => (
             <div
@@ -190,7 +193,7 @@ function Taxonomy() {
         <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--t34)" }}>
           Renaming a tag rewrites it on every lead. Deleting one strips it.
         </p>
-      </SectionCard>
+      </CollapsibleCard>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
         <div style={{ flex: "1 1 320px", minWidth: 0 }}>
@@ -227,7 +230,7 @@ function NameList({
   const [value, setValue] = useState("");
 
   return (
-    <SectionCard title={title}>
+    <CollapsibleCard title={title} count={ws[table].length}>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {ws[table].map((item) => (
           <div
@@ -276,7 +279,7 @@ function NameList({
           Add
         </button>
       </div>
-    </SectionCard>
+    </CollapsibleCard>
   );
 }
 
@@ -294,7 +297,7 @@ function PriceList({
   const [price, setPrice] = useState("");
 
   return (
-    <SectionCard title={title}>
+    <CollapsibleCard title={title} count={ws[table].length}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {ws[table].map((item) => (
           <div key={item.id} style={{ display: "flex", gap: 7 }}>
@@ -371,7 +374,7 @@ function PriceList({
       <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--t34)" }}>
         {hint} Prices are per month, in dollars.
       </p>
-    </SectionCard>
+    </CollapsibleCard>
   );
 }
 

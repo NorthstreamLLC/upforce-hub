@@ -318,3 +318,12 @@ select.upf-input { appearance: none; padding-right: 26px; cursor: pointer; }
 }
 
 .upf-focus:focus-visible { outline: 2px solid var(--ta); outline-offset: 2px; }
+
+/* --- Collapsible cards -----------------------------------------------------
+   Safari still paints a disclosure triangle unless the WebKit pseudo-element
+   is hidden too, which would sit alongside our own marker. */
+.upf-collapse > summary::-webkit-details-marker { display: none; }
+.upf-collapse > summary::marker { content: ""; }
+.upf-collapse > summary:hover { background: var(--t8); border-radius: 13px 13px 0 0; }
+.upf-collapse[open] > summary .upf-collapse-marker { transform: rotate(90deg); }
+.upf-collapse > summary:focus-visible { outline: 2px solid var(--ta); outline-offset: -2px; }
