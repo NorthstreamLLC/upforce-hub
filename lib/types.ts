@@ -64,6 +64,25 @@ export type CalendarAccount = {
 
 export type TeamShare = { url: string; shared: boolean };
 
+/**
+ * One closed month, frozen.
+ *
+ * MRR figures are state as it stood when the month was captured; won and lost
+ * are counted from the transition log and are exact.
+ */
+export type MonthlySnapshot = {
+  /** First day of the month, ISO date. */
+  month: string;
+  activeMrrCents: number;
+  pipelineMrrCents: number;
+  leadCount: number;
+  convertedCount: number;
+  stageCounts: Partial<Record<StageId, number>>;
+  stageValues: Partial<Record<StageId, number>>;
+  wonCount: number;
+  lostCount: number;
+};
+
 /** Everything the app needs for a session, loaded once and held client-side. */
 export type Workspace = {
   leads: Lead[];
@@ -76,6 +95,8 @@ export type Workspace = {
   meetings: Meeting[];
   calendarAccounts: CalendarAccount[];
   teamShare: TeamShare;
+  /** Closed months, newest first. Empty until the first month rolls over. */
+  history: MonthlySnapshot[];
 };
 
 export type ViewId =

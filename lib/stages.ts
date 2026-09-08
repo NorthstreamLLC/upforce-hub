@@ -111,21 +111,6 @@ export function isStageId(value: string): value is StageId {
   return STAGE_IDS.has(value);
 }
 
-/**
- * Probability weighting used by the Revenue forecast.
- *
- * Converted revenue is booked, not forecast, so it is excluded here and
- * reported as Active MRR instead.
- */
-export const STAGE_PROBABILITY: Record<StageId, number> = {
-  hot: 0.6,
-  warm: 0.3,
-  cold: 0.1,
-  reactivation: 0.2,
-  converted: 0,
-  dead: 0,
-};
-
 export const CHANNELS = ["Email", "DM", "Call"] as const;
 export type Channel = (typeof CHANNELS)[number];
 

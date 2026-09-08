@@ -8,6 +8,7 @@ import type {
   CalendarAccount,
   Lead,
   Meeting,
+  MonthlySnapshot,
   NamedItem,
   Package,
   Tag,
@@ -44,6 +45,7 @@ export async function getWorkspace(): Promise<Workspace> {
     meetings,
     calendarAccounts,
     settings,
+    history,
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -80,6 +82,15 @@ export async function getWorkspace(): Promise<Workspace> {
       .select("id,key,name,detail,connected,sort")
       .order("sort"),
     supabase.from("app_settings").select("key,value"),
+    /* Two years is plenty for a month-over-month table and keeps the payload
+       bounded no matter how long the workspace runs. */
+    supabase
+      .from("monthly_snapshots")
+      .select(
+        "month,active_mrr_cents,pipeline_mrr_cents,lead_count,converted_count,stage_counts,stage_values,won_count,lost_count"
+      )
+      .order("month", { ascending: false })
+      .limit(24),
   ]);
 
   const failure = [
@@ -98,6 +109,7 @@ export async function getWorkspace(): Promise<Workspace> {
     meetings,
     calendarAccounts,
     settings,
+    history,
   ].find((r) => r.error);
 
   if (failure?.error) throw new Error(failure.error.message);
@@ -213,6 +225,19 @@ export async function getWorkspace(): Promise<Workspace> {
       })
     ),
     teamShare,
+    history: (history.data ?? []).map(
+      (h): MonthlySnapshot => ({
+        month: h.month,
+        activeMrrCents: h.active_mrr_cents,
+        pipelineMrrCents: h.pipeline_mrr_cents,
+        leadCount: h.lead_count,
+        convertedCount: h.converted_count,
+        stageCounts: (h.stage_counts ?? {}) as MonthlySnapshot["stageCounts"],
+        stageValues: (h.stage_values ?? {}) as MonthlySnapshot["stageValues"],
+        wonCount: h.won_count,
+        lostCount: h.lost_count,
+      })
+    ),
   };
 }
 

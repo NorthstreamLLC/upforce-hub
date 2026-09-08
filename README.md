@@ -24,13 +24,16 @@ Create a project, then run the two migrations in order from the SQL editor (or
 ```
 supabase/migrations/0001_initial_schema.sql
 supabase/migrations/0002_seed.sql
+supabase/migrations/0003_history.sql
 ```
 
 `0001` is the schema, the trigger that creates a profile on signup, and RLS.
 `0002` is baseline data. **Read the header comment in `0002` before running it
 against production** — the top half (cadences, packages, add-ons, platforms,
 sources, tags) is real and required; the bottom half is sixteen demo leads
-carried over from the design prototype and is marked for deletion.
+carried over from the design prototype and is marked for deletion. `0003` adds
+pipeline history and needs the **pg_cron** extension — enable it first under
+Database → Extensions, or let the `create extension` line in that file do it.
 
 Then, in the Supabase dashboard:
 
@@ -148,6 +151,44 @@ Settings and every MRR figure updates.
 A lead's MRR is package + add-ons, unless **Quoted value override** is set in
 the drawer, in which case that wins. Clearing the override hands the number
 back to the rate card.
+
+Revenue reports value at face, with no probability weighting — Active MRR is
+what converted clients pay, Pipeline MRR is what everything still live would
+pay. Judging how much of the pipeline will actually land is left to the team
+rather than baked into a number.
+
+### History
+
+Everything else in the app is computed from current state, which answers
+today's question and no other. Two tables record the past instead.
+
+**`stage_events`** is an append-only log of every stage change, written by a
+trigger on `leads` as it happens. It carries the lead's MRR *at the moment it
+moved*, so a September transition keeps September's price rather than being
+silently repriced by a later edit in Settings. It has a read policy and no
+write policy — the trigger is `SECURITY DEFINER`, and nothing can write to the
+log by hand. This is the part that cannot be backfilled: it only ever knows
+what happened after it existed.
+
+**`monthly_snapshots`** holds one row per closed month, written by `pg_cron` at
+00:05 UTC on the 1st via `capture_month()`. Re-running a capture corrects that
+month rather than duplicating it.
+
+One honest limitation: a snapshot's MRR figures are state as it stood *when the
+capture ran*, attributed to the month named. Run on the 1st, that is a faithful
+picture of how the month ended; run against a month from a year ago and you get
+today's numbers under an old label. Reconstructing historical MRR exactly would
+need package price history, which is deliberately out of scope. The `won_count`
+and `lost_count` columns carry no such caveat — they are counted from
+`stage_events` inside the month and are exact.
+
+To close a month by hand, or check the schedule:
+
+```sql
+select capture_month();                    -- close last month
+select capture_month(date '2026-09-01');   -- close a named month
+select * from cron.job where jobname = 'upforce-close-month';
+```
 
 ### State and the stale-read trap
 

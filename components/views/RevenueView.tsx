@@ -6,14 +6,15 @@ import { useHub } from "@/components/HubStore";
 import { SectionCard, StatCard } from "@/components/ui";
 import { useDerivedLeads, type DerivedLead } from "@/components/useDerived";
 import { ink, money, moneyFull } from "@/lib/engine";
-import { STAGES, STAGE_ORDER, STAGE_PROBABILITY } from "@/lib/stages";
+import { STAGES, STAGE_ORDER } from "@/lib/stages";
 
 /**
- * What the pipeline is worth, and how much of that to believe.
+ * What the pipeline is worth.
  *
- * Active MRR is booked revenue from converted clients. Everything else is
- * forecast, weighted by stage - a Hot lead is not worth the same as a Cold one
- * and reporting them at the same value is how a pipeline flatters itself.
+ * Active MRR is booked revenue from converted clients; Pipeline MRR is
+ * everything still live, reported at full value. No probability weighting -
+ * the team reads these as "what is on the table", and applies its own judgement
+ * about what will land.
  */
 export function RevenueView() {
   const { ws, theme } = useHub();
@@ -29,17 +30,11 @@ export function RevenueView() {
     const activeMrr = sum(converted);
     const pipelineMrr = sum(inPipe);
 
-    const weighted = inPipe.reduce(
-      (acc, lead) => acc + lead.mrrCents * STAGE_PROBABILITY[lead.stage],
-      0
-    );
-
     const closed = converted.length + dead.length;
 
     return {
       activeMrr,
       pipelineMrr,
-      weighted,
       avgDeal: converted.length ? activeMrr / converted.length : 0,
       winRate: closed ? converted.length / closed : 0,
       convertedCount: converted.length,
@@ -93,12 +88,10 @@ export function RevenueView() {
       STAGE_ORDER.filter((s) => s !== "converted" && s !== "dead").map(
         (stage) => {
           const inStage = leads.filter((l) => l.stage === stage);
-          const raw = sum(inStage);
           return {
             stage,
             count: inStage.length,
-            raw,
-            weighted: raw * STAGE_PROBABILITY[stage],
+            value: sum(inStage),
           };
         }
       ),
@@ -126,12 +119,7 @@ export function RevenueView() {
         <StatCard
           label="Pipeline MRR"
           value={money(totals.pipelineMrr)}
-          note="unweighted, everything live"
-        />
-        <StatCard
-          label="Weighted forecast"
-          value={money(totals.weighted)}
-          note="by stage probability"
+          note="everything live, at full value"
           tone="#E9A83B"
         />
         <StatCard label="Avg deal" value={money(totals.avgDeal)} note="per client" />
@@ -143,6 +131,122 @@ export function RevenueView() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <SectionCard title="Month by month" bodyStyle={{ padding: 0 }}>
+          {ws.history.length === 0 ? (
+            <p
+              style={{
+                margin: 0,
+                padding: 18,
+                fontSize: 13,
+                color: "var(--t35)",
+                lineHeight: 1.6,
+              }}
+            >
+              No months closed yet. A snapshot is taken automatically at 00:05
+              UTC on the 1st, freezing the month that just ended — so the first
+              row appears once this month rolls over.
+            </p>
+          ) : (
+            <div className="upf-scroll-x">
+              <table
+                style={{
+                  width: "100%",
+                  minWidth: 640,
+                  borderCollapse: "collapse",
+                }}
+              >
+                <thead>
+                  <tr>
+                    {["Month", "Active MRR", "Pipeline MRR", "Won", "Lost", "Net"].map(
+                      (heading, i) => (
+                        <th
+                          key={heading}
+                          className="upf-label"
+                          style={{
+                            padding: "11px 16px",
+                            textAlign: i === 0 ? "left" : "right",
+                            borderBottom: "1px solid var(--t16)",
+                            fontWeight: 400,
+                          }}
+                        >
+                          {heading}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ws.history.map((row, i) => {
+                    /* History is newest-first, so the previous month is the
+                       NEXT row, not the one above it. */
+                    const previous = ws.history[i + 1];
+                    const delta = previous
+                      ? row.activeMrrCents - previous.activeMrrCents
+                      : null;
+                    const net = row.wonCount - row.lostCount;
+
+                    return (
+                      <tr key={row.month}>
+                        <td style={cell}>{monthLabel(row.month)}</td>
+                        <td style={{ ...cell, ...numeric }}>
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: 8,
+                              justifyContent: "flex-end",
+                            }}
+                          >
+                            {money(row.activeMrrCents)}
+                            {delta !== null && delta !== 0 ? (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  color:
+                                    delta > 0
+                                      ? ink("#3FBF7F", theme)
+                                      : ink("#F2683C", theme),
+                                }}
+                              >
+                                {delta > 0 ? "+" : "−"}
+                                {money(Math.abs(delta))}
+                              </span>
+                            ) : null}
+                          </span>
+                        </td>
+                        <td style={{ ...cell, ...numeric }}>
+                          {money(row.pipelineMrrCents)}
+                        </td>
+                        <td
+                          style={{
+                            ...cell,
+                            ...numeric,
+                            color: row.wonCount ? ink("#3FBF7F", theme) : undefined,
+                          }}
+                        >
+                          {row.wonCount}
+                        </td>
+                        <td
+                          style={{
+                            ...cell,
+                            ...numeric,
+                            color: row.lostCount ? ink("#F2683C", theme) : undefined,
+                          }}
+                        >
+                          {row.lostCount}
+                        </td>
+                        <td style={{ ...cell, ...numeric }}>
+                          {net > 0 ? `+${net}` : net}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
+
         <SectionCard title="Revenue by package" bodyStyle={{ padding: 0 }}>
           <div className="upf-scroll-x">
             <table
@@ -302,29 +406,19 @@ export function RevenueView() {
                   className="upf-mono"
                   style={{ fontSize: 11.5, color: "var(--t34)" }}
                 >
-                  {row.count} {row.count === 1 ? "lead" : "leads"} ·{" "}
-                  {Math.round(STAGE_PROBABILITY[row.stage] * 100)}% weighting
+                  {row.count} {row.count === 1 ? "lead" : "leads"}
                 </span>
                 <span
                   className="upf-mono"
                   style={{
                     marginLeft: "auto",
-                    fontSize: 12,
-                    color: "var(--t35)",
-                  }}
-                >
-                  {money(row.raw)} raw
-                </span>
-                <span
-                  className="upf-mono"
-                  style={{
                     fontSize: 12.5,
                     fontWeight: 500,
                     color: ink("#E9A83B", theme),
                     flex: "0 0 auto",
                   }}
                 >
-                  {money(row.weighted)} weighted
+                  {money(row.value)}/mo
                 </span>
               </div>
             ))}
@@ -332,12 +426,22 @@ export function RevenueView() {
 
           <p style={{ margin: "12px 0 0", fontSize: 11.5, color: "var(--t34)" }}>
             Converted revenue is reported as Active MRR and excluded here — it
-            is booked, not forecast.
+            is already won, not still on the table.
           </p>
         </SectionCard>
       </div>
     </>
   );
+}
+
+/** "September 2026" from an ISO date, read as UTC so the month cannot slip. */
+function monthLabel(iso: string): string {
+  const [year, month] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 function sum(leads: DerivedLead[]): number {
