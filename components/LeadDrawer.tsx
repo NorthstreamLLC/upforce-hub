@@ -79,6 +79,7 @@ export function LeadDrawer() {
       <Ladder />
       <Notes />
       <History />
+      <DangerZone />
     </aside>
   );
 }
@@ -721,7 +722,7 @@ function History() {
   const lead = useDerivedLead(selectedId)!;
 
   return (
-    <Section title="Touch history" last>
+    <Section title="Touch history">
       {lead.history.length === 0 ? (
         <p style={{ margin: 0, fontSize: 12.5, color: "var(--t35)" }}>
           Nothing logged yet.
@@ -749,6 +750,81 @@ function History() {
             </li>
           ))}
         </ul>
+      )}
+    </Section>
+  );
+}
+
+/**
+ * Deleting a lead, behind a deliberate second click.
+ *
+ * No window.confirm: it is suppressible, unstyleable, and reads as a browser
+ * warning rather than something this app meant to say. The inline two-step
+ * costs the same one extra click and can explain what is about to happen.
+ */
+function DangerZone() {
+  const { selectedId, removeLead } = useHub();
+  const lead = useDerivedLead(selectedId)!;
+  const [armed, setArmed] = useState(false);
+
+  // Disarm when the drawer is reused for a different lead, so a primed
+  // confirm cannot carry over onto someone else's record.
+  useEffect(() => setArmed(false), [lead.id]);
+
+  return (
+    <Section title="Danger zone" last>
+      {!armed ? (
+        <>
+          <button
+            className="upf-btn upf-btn-ghost"
+            type="button"
+            onClick={() => setArmed(true)}
+          >
+            Delete lead
+          </button>
+          <p style={{ margin: "9px 0 0", fontSize: 11.5, color: "var(--t34)" }}>
+            For duplicates and mistakes. A lead that went nowhere is better
+            moved to Dead Lead — that keeps its history.
+          </p>
+        </>
+      ) : (
+        <>
+          <p
+            style={{
+              margin: "0 0 10px",
+              fontSize: 12.5,
+              color: "var(--terr)",
+              lineHeight: 1.55,
+            }}
+          >
+            Delete {lead.name} permanently? Its accounts, tags, add-ons,{" "}
+            {lead.history.length}{" "}
+            {lead.history.length === 1 ? "logged touch" : "logged touches"} and
+            stage history go with it, and it is removed from every month it
+            contributed to. This cannot be undone.
+          </p>
+          <div style={{ display: "flex", gap: 7 }}>
+            <button
+              className="upf-btn"
+              type="button"
+              style={{
+                color: "var(--terr)",
+                background: "rgba(242,104,60,.10)",
+                borderColor: "rgba(242,104,60,.28)",
+              }}
+              onClick={() => removeLead(lead.id)}
+            >
+              Delete permanently
+            </button>
+            <button
+              className="upf-btn upf-btn-ghost"
+              type="button"
+              onClick={() => setArmed(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
       )}
     </Section>
   );

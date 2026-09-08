@@ -53,6 +53,7 @@ type Store = {
   snooze: (leadId: string) => void;
   patchLead: (leadId: string, patch: api.LeadPatch) => void;
   addLead: (input: api.NewLead) => Promise<string | null>;
+  removeLead: (leadId: string) => void;
 
   setTag: (leadId: string, tagId: string, on: boolean) => void;
   setAddon: (leadId: string, addonId: string, on: boolean) => void;
@@ -347,6 +348,33 @@ export function HubProvider({
       return result.data.id;
     },
     [notify]
+  );
+
+  /**
+   * Deletes a lead outright.
+   *
+   * Everything hanging off it goes too - socials, tags, add-ons, touch history
+   * and its stage-transition events - because the database cascades. That last
+   * one is why this is for mistakes and duplicates, not for leads that went
+   * nowhere: moving one to Dead Lead keeps the record of what happened, and
+   * deleting it removes that lead from every month it ever contributed to.
+   */
+  const removeLead = useCallback(
+    (leadId: string) => {
+      // Close the drawer first - it renders from selectedId, and holding a
+      // deleted id open would leave it blank until something else moved.
+      setSelectedId((current) => (current === leadId ? null : current));
+
+      commit(
+        (current) => ({
+          ...current,
+          leads: current.leads.filter((l) => l.id !== leadId),
+        }),
+        () => api.deleteLead(leadId),
+        "Lead deleted"
+      );
+    },
+    [commit]
   );
 
   const setTag = useCallback(
@@ -739,6 +767,7 @@ export function HubProvider({
       snooze,
       patchLead,
       addLead,
+      removeLead,
       setTag,
       setAddon,
       addSocial,
@@ -761,6 +790,7 @@ export function HubProvider({
       snooze,
       patchLead,
       addLead,
+      removeLead,
       setTag,
       setAddon,
       addSocial,
