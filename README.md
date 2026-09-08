@@ -18,7 +18,7 @@ deployed on Vercel.
 
 ### 1. Supabase
 
-Create a project, then run the two migrations in order from the SQL editor (or
+Create a project, then run the three migrations in order from the SQL editor (or
 `supabase db push` if you use the CLI):
 
 ```
@@ -27,12 +27,13 @@ supabase/migrations/0002_seed.sql
 supabase/migrations/0003_history.sql
 ```
 
+`supabase/demo_data.sql` sits deliberately **outside** `migrations/`, so a fresh
+migration run never plants sample leads into a real workspace. Run it by hand
+when you want a populated environment to click around in.
+
 `0001` is the schema, the trigger that creates a profile on signup, and RLS.
-`0002` is baseline data. **Read the header comment in `0002` before running it
-against production** — the top half (cadences, packages, add-ons, platforms,
-sources, tags) is real and required; the bottom half is sixteen demo leads
-carried over from the design prototype and is marked for deletion. `0003` adds
-pipeline history and needs the **pg_cron** extension — enable it first under
+`0002` is the production taxonomy — cadences, packages, add-ons, platforms,
+sources, tags — all of it required. `0003` adds pipeline history and needs the **pg_cron** extension — enable it first under
 Database → Extensions, or let the `create extension` line in that file do it.
 
 Then, in the Supabase dashboard:
