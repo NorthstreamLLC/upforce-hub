@@ -1,0 +1,320 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   The palette is a single ordered ramp (--t0 darkest surface through --t40
+   brightest ink) plus a handful of semantic hues. Light mode redefines the
+   same names rather than introducing new ones, which is what lets the theme
+   toggle be a one-attribute swap on <html> with a 300ms cross-fade.
+   --------------------------------------------------------------------------- */
+:root {
+  --t0:#0A0908;  --t1:#0C0B09;  --t2:#0D0C0A;  --t3:#0F0D0C;  --t4:#100E0D;
+  --t5:#110F0E;  --t6:#131110;  --t7:#141110;  --t8:#151211;  --t9:#161312;
+  --t10:#15120F; --t11:#17140F; --t12:#171412; --t13:#1A1613; --t14:#1D1710;
+  --t15:#1B1714; --t16:#1A1715; --t17:#1E1A18; --t18:#201C19; --t19:#221E1B;
+  --t20:#241F1B; --t21:#262220; --t22:#2A2521; --t23:#2E2823; --t24:#332E29;
+  --t25:#33291C; --t26:#2A2118; --t27:#3A2F22; --t28:#3A322B; --t29:#3E362F;
+  --t30:#4A413A; --t31:#4F483F; --t32:#514A43; --t33:#6A6158; --t34:#6E655B;
+  --t35:#7C736A; --t36:#8A8077; --t37:#9B9187; --t38:#B4ABA1; --t39:#C6BDB3;
+  --t40:#EDE8E1; --t41:#E9A83B; --t42:#F5C46B; --t43:#1A1207; --t44:#241503;
+  --t45:#6B6560; --t46:#3FBF7F; --t47:#F2683C; --t48:#5B9BD5; --t49:#C9A227;
+  --t50:#8B7BD8; --t51:#D96B8F; --t52:rgba(6,5,4,.72);
+
+  --ta:#E9A83B;
+  --tg:#3FBF7F;
+  --terr:#F2683C;
+  --accent-hover:#F5C46B;
+  --accent-ink:#1A1207;
+
+  --shadow:0 24px 48px rgba(0,0,0,.55);
+  --scrollthumb:#2A2521;
+
+  /* The logo "UP" glyph is white, so on light surfaces it needs a dark chip
+     behind it or half the wordmark disappears. */
+  --logo-bg:transparent;
+  --logo-pad:0;
+}
+
+[data-theme="light"] {
+  --t0:#F6F3EE;  --t1:#FFFFFF;  --t2:#FBF9F5;  --t3:#FFFFFF;  --t4:#FFFFFF;
+  --t5:#FFFFFF;  --t6:#F4F1EB;  --t7:#FFFFFF;  --t8:#EFEBE3;  --t9:#F4F1EB;
+  --t10:#FCF4E4; --t11:#F5F0E4; --t12:#231F1B; --t13:#F3E8D5; --t14:#F9EDD5;
+  --t15:#E8E3DA; --t16:#EAE5DC; --t17:#E7E1D8; --t18:#E2DBD1; --t19:#E2DBD1;
+  --t20:#DFD8CE; --t21:#DBD3C8; --t22:#D4CCC1; --t23:#CEC6BA; --t24:#8C8478;
+  --t25:#E7C88E; --t26:#F6E8CE; --t27:#E2CB9E; --t28:#8B8377; --t29:#857D71;
+  --t30:#7A7267; --t31:#6E6659; --t32:#6B6357; --t33:#5F584D; --t34:#5C5449;
+  --t35:#57503F; --t36:#4E4839; --t37:#57503F; --t38:#463F35; --t39:#39332B;
+  --t40:#1A1713; --t41:#C08419; --t42:#A87014; --t43:#FFFFFF; --t44:#FFFFFF;
+  --t45:#7C746A; --t46:#1E8A55; --t47:#C64F22; --t48:#2E6FA6; --t49:#8F7412;
+  --t50:#5A4CB2; --t51:#B14567; --t52:rgba(70,63,53,.42);
+
+  --ta:#8A5F0C;
+  --tg:#14663D;
+  --terr:#A83A15;
+  --accent-hover:#A87014;
+  --accent-ink:#FFFFFF;
+
+  --shadow:0 18px 40px rgba(90,80,64,.16);
+  --scrollthumb:#D8D1C6;
+
+  --logo-bg:#1A1713;
+  --logo-pad:5px 9px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--t0);
+  color: var(--t40);
+}
+
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background 300ms ease, color 300ms ease;
+}
+
+a { color: var(--ta); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+input, select, textarea, button { font-family: inherit; color: inherit; }
+button { cursor: pointer; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--scrollthumb); border-radius: 8px; border: 3px solid var(--t0); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* --- Motion ---------------------------------------------------------------
+   Named to match the handoff so a designer reading either file recognises the
+   same animation. */
+@keyframes upfIn      { from { opacity:0; transform:translateY(6px); }  to { opacity:1; transform:none; } }
+@keyframes upfDrawer  { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:none; } }
+@keyframes upfPulse   { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+@keyframes upfRise    { from { opacity:0; transform:translateY(10px) scale(.985); } to { opacity:1; transform:none; } }
+@keyframes upfPop     { 0% { transform:scale(.9); opacity:0; } 60% { transform:scale(1.04); } 100% { transform:scale(1); opacity:1; } }
+@keyframes upfSlideUp { from { opacity:0; transform:translate(-50%,12px); } to { opacity:1; transform:translate(-50%,0); } }
+@keyframes upfBar     { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+
+.upf-in     { animation: upfIn .25s ease both; }
+.upf-rise   { animation: upfRise .4s cubic-bezier(.2,.7,.3,1) both; }
+.upf-drawer { animation: upfDrawer .22s cubic-bezier(.2,.7,.3,1) both; }
+.upf-pop    { animation: upfPop .22s cubic-bezier(.2,.7,.3,1) both; }
+.upf-bar    { animation: upfBar .5s cubic-bezier(.2,.7,.3,1) both; transform-origin: left; }
+.upf-pulse  { animation: upfPulse 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* --- Type -----------------------------------------------------------------
+   Poppins carries headings and every numeral; DM Sans carries body; JetBrains
+   Mono carries the uppercase micro-labels and metrics. */
+.upf-display { font-family: var(--font-display), system-ui, sans-serif; }
+.upf-mono    { font-family: var(--font-mono), ui-monospace, monospace; }
+
+.upf-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--t35);
+}
+
+/* --- Surfaces -------------------------------------------------------------- */
+.upf-card {
+  background: var(--t5);
+  border: 1px solid var(--t19);
+  border-radius: 13px;
+}
+
+.upf-panel {
+  background: var(--t3);
+  border: 1px solid var(--t19);
+  border-radius: 14px;
+}
+
+.upf-divider { border-top: 1px solid var(--t16); }
+
+/* --- Controls -------------------------------------------------------------- */
+.upf-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  font-size: 13.5px;
+  border-radius: 9px;
+  background: var(--t6);
+  border: 1px solid var(--t21);
+  color: var(--t40);
+  outline: none;
+  transition: border-color .16s ease;
+}
+.upf-input:focus { border-color: var(--t41); }
+.upf-input::placeholder { color: var(--t34); }
+
+.upf-input-lg { height: 44px; border-radius: 11px; font-size: 14px; }
+
+textarea.upf-input { height: auto; padding: 10px 11px; line-height: 1.55; resize: vertical; }
+
+select.upf-input { appearance: none; padding-right: 26px; cursor: pointer; }
+
+.upf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid var(--t25);
+  background: var(--t14);
+  color: var(--ta);
+  white-space: nowrap;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
+}
+.upf-btn:hover {
+  background: var(--ta);
+  border-color: var(--ta);
+  color: var(--accent-ink);
+  transform: scale(1.04);
+}
+
+.upf-btn-ghost {
+  border-color: var(--t21);
+  background: var(--t6);
+  color: var(--t39);
+}
+.upf-btn-ghost:hover {
+  background: var(--t11);
+  border-color: var(--t28);
+  color: var(--t40);
+  transform: none;
+}
+
+.upf-btn-primary {
+  height: 44px;
+  border-radius: 11px;
+  font-size: 14.5px;
+  font-weight: 700;
+  background: var(--ta);
+  border-color: var(--ta);
+  color: var(--accent-ink);
+}
+.upf-btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+.upf-btn-primary:disabled { opacity: .75; transform: none; cursor: default; }
+
+.upf-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 20px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* --- Interactive rows ------------------------------------------------------ */
+.upf-hover-card { transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.upf-hover-card:hover {
+  background: var(--t11);
+  border-color: var(--t28);
+  transform: translateY(-2px);
+}
+
+.upf-table-row { transition: background .16s ease, box-shadow .16s ease; }
+.upf-table-row:hover { background: var(--t8); box-shadow: inset 3px 0 0 var(--t25); }
+
+/* Any grid that scrolls sideways needs its header and rows on one shared
+   template, or the two drift apart the moment a column changes. */
+.upf-leads-grid {
+  display: grid;
+  grid-template-columns: minmax(0,2.2fr) minmax(0,1.2fr) 116px minmax(0,1.15fr) 96px 92px;
+  gap: 14px;
+  min-width: 840px;
+}
+
+.upf-scroll-x { overflow-x: auto; }
+
+.upf-logo {
+  height: 30px;
+  width: auto;
+  background: var(--logo-bg);
+  padding: var(--logo-pad);
+  border-radius: 8px;
+}
+
+.upf-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  border: 1px solid var(--t22);
+  background: var(--t6);
+  display: grid;
+  place-content: center;
+  transition: background .16s ease, border-color .16s ease;
+}
+.upf-checkbox:checked { background: var(--ta); border-color: var(--ta); }
+.upf-checkbox:checked::after {
+  content: "\2713";
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  line-height: 1;
+}
+
+.upf-error {
+  font-size: 12.5px;
+  color: var(--terr);
+  background: rgba(242,104,60,.10);
+  border: 1px solid rgba(242,104,60,.28);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+
+.upf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--t52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.upf-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 60;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 10px;
+  background: var(--t13);
+  border: 1px solid var(--t22);
+  color: var(--t40);
+  box-shadow: var(--shadow);
+  animation: upfSlideUp .22s cubic-bezier(.2,.7,.3,1) both;
+}
+
+.upf-focus:focus-visible { outline: 2px solid var(--ta); outline-offset: 2px; }
