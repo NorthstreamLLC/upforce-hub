@@ -54,6 +54,45 @@ export function RevenueView() {
     [leads]
   );
 
+  /* Product mix. No price column - that is the rate card, and it lives in
+     Settings. What this answers is which tiers people actually buy. */
+  const byPackage = useMemo(
+    () =>
+      ws.packages
+        .map((pkg) => {
+          const on = leads.filter((l) => l.packageId === pkg.id);
+          const clients = on.filter((l) => l.stage === "converted");
+          return {
+            id: pkg.id,
+            name: pkg.name,
+            clients: clients.length,
+            inPipe: on.filter(
+              (l) => l.stage !== "converted" && l.stage !== "dead"
+            ).length,
+            mrr: sum(clients),
+          };
+        })
+        .sort((a, b) => b.mrr - a.mrr || b.clients - a.clients),
+    [leads, ws.packages]
+  );
+
+  /* Every add-on, including the ones nobody has taken - a zero row is the
+     signal that a line item is not selling, which disappears if we filter it
+     out. Doubly useful while the eight prices are still unset: this says which
+     to price first. */
+  const byAddon = useMemo(
+    () =>
+      ws.addons
+        .map((addon) => ({
+          id: addon.id,
+          name: addon.name,
+          priced: addon.priceCents > 0,
+          attached: leads.filter((l) => l.addonIds.includes(addon.id)).length,
+        }))
+        .sort((a, b) => b.attached - a.attached),
+    [leads, ws.addons]
+  );
+
   return (
     <>
       <div
@@ -210,6 +249,89 @@ export function RevenueView() {
             </div>
           )}
         </SectionCard>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+          <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+            <SectionCard title="Packages" bodyStyle={{ padding: 0 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["Package", "Clients", "In pipe", "MRR"].map((h, i) => (
+                      <th
+                        key={h}
+                        className="upf-label"
+                        style={{
+                          padding: "11px 16px",
+                          textAlign: i === 0 ? "left" : "right",
+                          borderBottom: "1px solid var(--t16)",
+                          fontWeight: 400,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {byPackage.map((row) => (
+                    <tr key={row.id}>
+                      <td style={cell}>{row.name}</td>
+                      <td style={{ ...cell, ...numeric }}>{row.clients}</td>
+                      <td style={{ ...cell, ...numeric }}>{row.inPipe}</td>
+                      <td style={{ ...cell, ...numeric }}>{money(row.mrr)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </SectionCard>
+          </div>
+
+          <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+            <SectionCard title="Add-on attach" bodyStyle={{ padding: 0 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["Add-on", "Leads"].map((h, i) => (
+                      <th
+                        key={h}
+                        className="upf-label"
+                        style={{
+                          padding: "11px 16px",
+                          textAlign: i === 0 ? "left" : "right",
+                          borderBottom: "1px solid var(--t16)",
+                          fontWeight: 400,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {byAddon.map((row) => (
+                    <tr key={row.id}>
+                      <td style={cell}>
+                        {row.name}
+                        {!row.priced ? (
+                          <span
+                            style={{
+                              marginLeft: 8,
+                              fontSize: 11,
+                              color: "var(--t34)",
+                            }}
+                          >
+                            no price set
+                          </span>
+                        ) : null}
+                      </td>
+                      <td style={{ ...cell, ...numeric }}>{row.attached}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </SectionCard>
+          </div>
+        </div>
 
         <SectionCard title="Value by stage">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

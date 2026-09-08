@@ -230,7 +230,7 @@ function NameList({
   const [value, setValue] = useState("");
 
   return (
-    <CollapsibleCard title={title} count={ws[table].length}>
+    <SectionCard title={title}>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {ws[table].map((item) => (
           <div
@@ -279,7 +279,7 @@ function NameList({
           Add
         </button>
       </div>
-    </CollapsibleCard>
+    </SectionCard>
   );
 }
 
@@ -297,7 +297,7 @@ function PriceList({
   const [price, setPrice] = useState("");
 
   return (
-    <CollapsibleCard title={title} count={ws[table].length}>
+    <SectionCard title={title}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {ws[table].map((item) => (
           <div key={item.id} style={{ display: "flex", gap: 7 }}>
@@ -374,7 +374,7 @@ function PriceList({
       <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--t34)" }}>
         {hint} Prices are per month, in dollars.
       </p>
-    </CollapsibleCard>
+    </SectionCard>
   );
 }
 
